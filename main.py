@@ -1,6 +1,6 @@
 import webapp2, jinja2, os, re
 from google.appengine.ext import db
-from models import Post, User
+from models import Post, User     #imports classes Post, User from file models.py / jk
 import hashutils
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -20,8 +20,10 @@ class BlogHandler(webapp2.RequestHandler):
             The user parameter will be a User object.
         """
 
-        # TODO - filter the query so that only posts by the given user
-        return None
+        # TODO - filter the query to yield only posts by the given user
+        query = Post.all().filter("author=", user.key()).order('-created')
+        return query.fetch(limit=limit, offset=offset)
+
 
     def get_user_by_name(self, username):
         """ Get a user object from the db, based on their username """
@@ -229,7 +231,9 @@ class SignupHandler(BlogHandler):
 
             # create new user object and store it in the database
             pw_hash = hashutils.make_pw_hash(username, password)
-            user = User(username=username, pw_hash=pw_hash)
+            #user = User(username=username, pw_hash=pw_hash) #deleted by Jen
+            #The following line is from the errata group on Slack
+            user = User(username=username, email=email, pw_hash=pw_hash)
             user.put()
 
             # login our new user
@@ -294,14 +298,15 @@ app = webapp2.WSGIApplication([
     ('/', IndexHandler),
     ('/blog', BlogIndexHandler),
     ('/blog/newpost', NewPostHandler),
-    webapp2.Route('/blog/<id:\d+>', ViewPostHandler),
-    webapp2.Route('/blog/<username:[a-zA-Z0-9_-]{3,20}>', BlogIndexHandler),
+    webapp2.Route('/blog/<id:\d+>', ViewPostHandler), #dynamic URL / jk
+    webapp2.Route('/blog/<username:[a-zA-Z0-9_-]{3,20}>', BlogIndexHandler), #dynamic URL / jk
     ('/signup', SignupHandler),
     ('/login', LoginHandler),
     ('/logout', LogoutHandler)
 ], debug=True)
 
-# A list of paths that a user must be logged in to access
+# A -->list<-- of paths that a user must be logged in to access
 auth_paths = [
-    '/blog/newpost'
+    '/blog/newpost',
+    '/logout'   #You'd think that you'd need to be logged in to see this URL. / jk
 ]
